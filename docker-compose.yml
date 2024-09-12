@@ -1,0 +1,68 @@
+version: '3.9'
+
+services:
+  wordpress:
+    image: wordpress
+    container_name: wp-everythingmom
+    restart: always
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - WORDPRESS_DB_HOST=wp_db
+      - WORDPRESS_DB_USER=myuser
+      - WORDPRESS_DB_PASSWORD=Secret@12345
+      - WORDPRESS_DB_NAME=wp_everythingmom_db
+    depends_on:
+      - mysql
+    networks:
+      - everythingmom-network
+    # ports:
+    #   - '9000:80'
+  # a reverse proxy
+  nginx-as-reverse-proxy:
+    image: nginx:latest
+    container_name: wp-nginx
+    ports:
+      - '80:80'
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - wordpress
+    networks:
+      - everythingmom-network
+
+  mysql:
+    image: mysql:8
+    container_name: wp_db
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpwd
+      - MYSQL_DATABASE=wp_everythingmom_db
+      - MYSQL_USER=myuser
+      - MYSQL_PASSWORD=Secret@12345
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./dbdata:/var/lib/mysql
+    networks:
+      - everythingmom-network
+
+  phpmyadmin:
+    container_name: wp-phpmyadmin
+    image: phpmyadmin:5
+    environment:
+      - PMA_HOST=wp_db
+      - PMA_USER=myuser
+      - PMA_PASSWORD=Secret@12345
+      - UPLOAD_LIMIT=100M
+      - MYSQL_ROOT_PASSWORD=rootpwd
+    depends_on:
+      - mysql
+    ports:
+      - 8080:80
+    networks:
+      - everythingmom-network
+
+networks:
+  everythingmom-network:
